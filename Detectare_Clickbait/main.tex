@@ -1,0 +1,112 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern} % Font modern și clar
+\usepackage[romanian]{babel}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+% Pachete adăugate pentru un aspect academic aerisit
+\usepackage{parskip} % Spațiu între paragrafe, fără indentare la început de rând
+\usepackage{setspace} % Permite setarea spațierii între rânduri
+\onehalfspacing % Spațiere de 1.5 între rânduri
+
+\title{\textbf{Detectarea Titlurilor Înșelătoare (Clickbait) prin Analiza Structurală a Textului și Indexul de Amânare a Informației}}
+\author{Rauliuc Catinca}
+\date{} % Aceasta comanda ascunde data
+
+\begin{document}
+
+\maketitle
+
+% Folosim spațiere simplă doar pentru cuprins ca să încapă tot pe o pagină
+\begin{spacing}{1}
+\tableofcontents
+\end{spacing}
+\newpage
+
+\section{Introducere}
+\subsection{Contextul general al dezinformării online și fenomenul de „clickbait”}
+% Aici vom adăuga textul mai târziu
+
+\subsection{Definirea problemei: Discrepanța titlu-conținut}
+% Aici vom adăuga textul mai târziu
+
+\subsection{Scopul proiectului și obiectivele cercetării}
+% Aici vom adăuga textul mai târziu
+
+
+\section{Stadiul actual al cercetării (Related Work)}
+\subsection{Metode anterioare pentru detectarea știrilor false pe baza textului}
+\subsection{Tehnologii de procesare a limbajului natural (NLP) folosite în prezent}
+\subsection{Soluții existente pentru identificarea titlurilor de tip clickbait}
+
+
+\section{Modelarea părții experimentale}
+\subsection{Datele utilizate}
+
+Pentru realizarea experimentelor, se va utiliza setul de date public \textit{Webis Clickbait Corpus 2016 (Webis-CBC-16)}, recunoscut în mediul academic pentru evaluarea tehnologiilor de detectare a titlurilor înșelătoare. 
+
+Arhiva principală a corpusului (corpus-webis-clickbait-16.zip, 266.9 MB) cuprinde 2992 de instanțe (postări extrase de pe platforma Twitter) provenite de la 20 de publicații majore de știri. 
+
+Un avantaj semnificativ al acestui set de date constă în etichetarea manuală riguroasă, realizată de trei evaluatori independenți. În baza votului majoritar, 767 dintre instanțe sunt clasificate ca fiind clickbait, formând un „ground truth” stabil pentru antrenarea modelelor. Din punct de vedere structural, datele sunt organizate eficient: directorul \texttt{problems} conține metadatele extrase prin API (fișiere \texttt{.json}) și pagina web originală (\texttt{.html}), în timp ce directorul \texttt{truth} conține evaluările centralizate în fișierul \texttt{majority.csv}.
+
+Pentru a permite implementarea abordării originale propuse în această lucrare (analiza structurală), datele brute vor suferi o etapă de preprocesare specifică. Spre deosebire de metodele clasice care tratează conținutul articolului ca pe un singur bloc unitar de text, în cadrul acestui proiect textul va fi segmentat. Astfel, fiecare articol va fi modelat matematic sub forma unei secvențe ordonate de paragrafe individuale: $A = [p_1, p_2, ..., p_n]$, unde $n$ reprezintă numărul total de paragrafe din articolul analizat. Această reformatare este esențială pentru a putea monitoriza poziția informației în text și a calcula ulterior Indexul de Amânare a Informației.
+
+\subsection{Modelul matematic: Indexul de Amânare a Informației (IDI)}
+
+Abordarea propusă transformă detectarea intenției de tip clickbait dintr-o problemă de clasificare globală a textului într-o problemă de analiză a distribuției spațiale a informației. Pentru a cuantifica matematic acest fenomen, am definit o metrică structurală denumită \textbf{Indexul de Amânare a Informației (IDI)}.
+
+Pentru a putea aplica operații matematice, datele textuale trebuie mai întâi vectorizate. Fie $T$ reprezentarea vectorială a titlului (obținută folosind tehnici precum TF-IDF sau Word Embeddings). Articolul segmentat anterior, $A = [p_1, p_2, ..., p_n]$, este transformat la rândul său într-o secvență de vectori corespunzători fiecărui paragraf: $[V_1, V_2, ..., V_n]$.
+
+Primul pas în calculul IDI constă în evaluarea relevanței fiecărui paragraf în raport cu promisiunea făcută în titlu. Aceasta se realizează calculând similaritatea cosinus (Cosine Similarity) între vectorul titlului și vectorul fiecărui paragraf în parte:
+\begin{equation}
+S(T, p_i) = \frac{T \cdot V_i}{\|T\| \|V_i\|}
+\end{equation}
+
+Aplicând această funcție iterativ, obținem un vector al scorurilor de similaritate semantică pentru întregul articol, care mapează evoluția relevanței textului rând cu rând:
+\begin{equation}
+S_{articol} = [s_1, s_2, ..., s_n]
+\end{equation}
+
+Pe baza acestei distribuții, definim \textbf{Indexul de Amânare a Informației (IDI)} ca fiind distanța relativă (normalizată) la care se află paragraful cu cel mai mare scor de similaritate față de începutul textului:
+\begin{equation}
+IDI = \frac{\arg\max_{i} (S_{articol})}{n}
+\end{equation}
+
+Unde:
+\begin{itemize}
+    \item $\arg\max_{i} (S_{articol})$ returnează poziția (indexul $i$) a paragrafului care a obținut cel mai mare scor de similaritate.
+    \item $n$ reprezintă numărul total de paragrafe din articol.
+\end{itemize}
+
+\textbf{Interpretarea modelului:} Comportamentul acestei metrici izolează perfect tehnica de manipulare structurală. Un scor $IDI \approx 0$ (punctul de maxim se află în primele paragrafe) arată că informația promisă în titlu este livrată cititorului rapid și onest, probabilitatea de clickbait fiind scăzută. În contrast, un scor $IDI \approx 1$ (scorul maxim se află în ultimele paragrafe) demonstrează că informația a fost amânată intenționat până la final pentru a forța cititorul să parcurgă întreaga pagină, indicând un profil manipulativ ridicat.
+\subsection{Experimentele propuse}
+\subsection{Metodologia de validare și metrici}
+
+
+\section{Studiu de caz pe date inițiale}
+\subsection{Implementarea algoritmului și mediul de lucru}
+\subsection{Efectuarea experimentelor pe un set restrâns}
+\subsection{Analiza primelor rezultate}
+
+
+\section{Validarea pe un set real de date}
+\subsection{Comparația cu abordările din literatură}
+\subsection{Evaluarea performanței generale}
+
+
+\section{Concluzii}
+\subsection{Sinteza rezultatelor și contribuția proiectului}
+
+
+\newpage
+\begin{thebibliography}{99}
+
+\bibitem{potthast2016}
+Martin Potthast, Sebastian Köpsel, Benno Stein, și Matthias Hagen. \textit{Clickbait Detection}. In Advances in Information Retrieval (ECIR 16), pag. 810-817, Springer, 2016.
+
+\end{thebibliography}
+
+\end{document}
