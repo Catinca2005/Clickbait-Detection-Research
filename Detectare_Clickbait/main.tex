@@ -83,7 +83,30 @@ Unde:
 
 \textbf{Interpretarea modelului:} Comportamentul acestei metrici izolează perfect tehnica de manipulare structurală. Un scor $IDI \approx 0$ (punctul de maxim se află în primele paragrafe) arată că informația promisă în titlu este livrată cititorului rapid și onest, probabilitatea de clickbait fiind scăzută. În contrast, un scor $IDI \approx 1$ (scorul maxim se află în ultimele paragrafe) demonstrează că informația a fost amânată intenționat până la final pentru a forța cititorul să parcurgă întreaga pagină, indicând un profil manipulativ ridicat.
 \subsection{Experimentele propuse}
+
+Pentru a evalua eficacitatea Indexului de Amânare a Informației (IDI) în detectarea titlurilor de tip clickbait, metodologia de cercetare presupune realizarea a două experimente comparative. Scopul acestora este de a determina ce îmbunătățiri aduce analiza structurală secvențială comparativ cu metodele clasice de procesare a limbajului natural. Această direcție extinde eforturile recente din literatura de specialitate care au utilizat similaritatea cosinus între titlu și conținutul global pentru corpusuri în limba română, precum RoCliCo \cite{broscoteanu2023} și SciTechBaitRO \cite{ginga2024}.
+
+\textbf{Experimentul 1: Clasificarea globală a textului (Scenariul de control / Baseline)} \\
+În acest prim experiment, articolele din setul de date vor fi analizate în mod tradițional. Conținutul fiecărui articol va fi tratat ca un singur bloc unitar de text, ignorându-se structura sa internă --- o abordare des întâlnită în sistemele de clasificare care se bazează exclusiv pe distribuția morfologică sau pe extragerea trăsăturilor semantice globale \cite{vincze2020}. Se va măsura similaritatea generală dintre vectorul titlului și vectorul întregului corp al articolului. Așteptarea este ca această metodă clasică să fie predispusă la „alarme false”, marcând greșit articolele legitime dar lungi, deoarece informația relevantă este diluată într-un text voluminos.
+
+\textbf{Experimentul 2: Clasificarea bazată pe analiza structurală (Abordarea originală)} \\
+Al doilea experiment implementează arhitectura matematică propusă în această lucrare (calculul IDI). Articolul va fi segmentat, se va calcula similaritatea cosinus la nivel de paragraf, iar decizia finală va fi dictată de poziția relevanței maxime. În loc să evalueze doar prezența informației, acest experiment evaluează momentul livrării ei. Această tehnică trece dincolo de o simplă decizie binară, permițând cuantificarea intensității (strength) caracterului înșelător, o necesitate subliniată de cercetători pentru a distinge între diferitele grade de clickbait din mediul online \cite{indurthi2020}. Astfel, IDI captează manipularea structurală la nivel de discurs, depășind limitele analizelor care tratează documentul ca o entitate statică.
 \subsection{Metodologia de validare și metrici}
+
+% Sectiune pentru descrierea metricilor de evaluare a performantei
+Pentru a evalua performanța abordării bazate pe Indexul de Amânare a Informației (IDI) și pentru a o compara cu metoda de clasificare globală, se va utiliza un set standardizat de metrici de evaluare specifice domeniului Machine Learning și procesării limbajului natural.
+
+Întrucât problema este formulată ca o sarcină de clasificare binară (clickbait vs. conținut legitim), performanța va fi măsurată folosind următoarele metrici, derivate din matricea de confuzie (adevărate pozitive - TP, adevărate negative - TN, false pozitive - FP, false negative - FN):
+
+\begin{enumerate}
+    \item \textbf{Acuratețea (Accuracy):} Măsoară proporția predicțiilor corecte din totalul instanțelor evaluate. Deși oferă o imagine de ansamblu bună asupra algoritmului, poate fi o metrică înșelătoare dacă setul de date prezintă un dezechilibru major între clase.
+    \item \textbf{Precizia (Precision):} Reprezintă capacitatea modelului de a nu eticheta greșit articolele legitime drept clickbait. O precizie ridicată indică un număr redus de alarme false (False Positives).
+    \item \textbf{Sensibilitatea (Recall):} Măsoară procentul de articole clickbait reale pe care modelul a reușit să le identifice corect (True Positives). Este o metrică crucială pentru a minimiza numărul de articole înșelătoare care reușesc să scape nedetectate (False Negatives).
+    \item \textbf{Scorul F1 (F1-Score):} Calculează media armonică dintre Precizie și Recall, oferind o metrică unică și robustă pentru evaluarea performanței generale. Aceasta este adesea metrica de referință în evaluarea modelelor NLP, deoarece penalizează modelele care favorizează extrem o singură clasă.
+\end{enumerate}
+
+% Explicarea procesului de impartire a setului de date
+Pentru metodologia de validare, setul de date Webis-CBC-16 va fi partiționat folosind tehnica standard de validare încrucișată sau de divizare a datelor (Train-Test Split). Mai exact, se va aloca 80\% din volumul de date pentru antrenarea modelelor și optimizarea pragului de decizie pentru IDI, iar restul de 20\% va fi păstrat strict pentru faza de testare. Această izolare garantează că evaluarea finală a algoritmului se va face exclusiv pe date neîntâlnite în faza de antrenament, reflectând cu acuratețe capacitatea modelului de a generaliza tiparele de amânare a informației pe știri noi.
 
 
 \section{Studiu de caz pe date inițiale}
@@ -104,8 +127,17 @@ Unde:
 \newpage
 \begin{thebibliography}{99}
 
-\bibitem{potthast2016}
-Martin Potthast, Sebastian Köpsel, Benno Stein, și Matthias Hagen. \textit{Clickbait Detection}. In Advances in Information Retrieval (ECIR 16), pag. 810-817, Springer, 2016.
+\bibitem{broscoteanu2023}
+Daria-Mihaela Broscoțeanu și Radu Tudor Ionescu. \textit{A Novel Contrastive Learning Method for Clickbait Detection on RoCliCo: A Romanian Clickbait Corpus of News Articles}. In Findings of the Association for Computational Linguistics: EMNLP, 2023.
+
+\bibitem{ginga2024}
+Raluca-Andreea Gînga și Ana Sabina Uban. \textit{SciTechBaitRO: ClickBait Detection for Romanian Science and Technology News}. In Proceedings of the Third Workshop on NLP for Positive Impact, 2024.
+
+\bibitem{indurthi2020}
+Vijayasaradhi Indurthi, Bakhtiyar Syed, Manish Gupta, și Vasudeva Varma. \textit{Predicting Clickbait Strength in Online Social Media}. In Proceedings of the 28th International Conference on Computational Linguistics, 2020.
+
+\bibitem{vincze2020}
+Veronika Vincze și Martina Katalin Szabó. \textit{Automatic Detection of Hungarian Clickbait and Entertaining Fake News}. In Proceedings of the 3rd International Workshop on Rumours and Deception in Social Media (RDSM), 2020.
 
 \end{thebibliography}
 
