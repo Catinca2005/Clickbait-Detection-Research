@@ -5,6 +5,7 @@
 \usepackage[romanian]{babel}
 \usepackage{amsmath}
 \usepackage{geometry}
+\usepackage{booktabs}
 \geometry{a4paper, margin=2.5cm}
 
 % Pachete adăugate pentru un aspect academic aerisit
@@ -60,6 +61,50 @@
 \subsection{Metode anterioare pentru detectarea știrilor false pe baza textului}
 \subsection{Tehnologii de procesare a limbajului natural (NLP) folosite în prezent}
 \subsection{Soluții existente pentru identificarea titlurilor de tip clickbait}
+
+În literatura de specialitate, detectarea automată a conținutului \textit{clickbait} s-a dezvoltat pe trei direcții principale:
+
+\begin{itemize}
+    \item \textbf{Analiza stilului și a indiciilor din titlu:} Primele metode au folosit algoritmi clasici pentru a identifica semnele vizibile ale titlurilor înșelătoare (semne de întrebare sau exclamare, cuvinte exagerate, lungimea frazelor)~\cite{potthast2016, indurthi2020, vincze2020}, introducând totodată seturile de date de referință \textit{Webis}~\cite{potthast2016}. Limitarea lor este că ignoră conținutul real al articolului.
+    \item \textbf{Clasificarea bazată exclusiv pe titlu cu modele moderne:} Studiul realizat pe corpusul \textit{SciTechBaitRO} a comparat metode clasice cu modele moderne de înțelegere a limbajului (BERT), analizând însă \textbf{doar titlul} știrii~\cite{ginga2024}. Astfel, articolele cu titluri aparent neutre, dar care ascund un conținut irelevant, rămân greu de detectat.
+    \item \textbf{Compararea globală între titlu și conținut:} Pe setul \textit{RoCliCo}, autorii au antrenat o rețea neurală (BERT) care măsoară asemănarea de sens dintre titlu și întregul articol~\cite{broscoteanu2023}. Dezavantajul este că tratează textul ca pe un singur bloc — fără a observa dacă informația promisă este amânată spre final — și necesită resurse hardware ridicate.
+\end{itemize}
+
+\subsection{Analiza comparativă față de metoda IDI și metricile vizate}
+
+Pentru a compara obiectiv rezultatele noastre cu literatura de specialitate, evaluarea se realizează pe setul de date public \textbf{Webis-CBC-16} ~\cite{potthast2016}.
+
+\textbf{Asemănări și deosebiri:}
+\begin{itemize}
+    \item \textbf{Elemente preluate din literatură:} Folosim reprezentarea numerică a cuvintelor prin \textbf{TF-IDF}, calculul \textbf{similarității cosinus} (ca în lucrarea lui Broscoțeanu și Ionescu~\cite{broscoteanu2023}) și împărțirea standard a datelor în $80\%$ antrenare și $20\%$ testare (ca în studiul lui Gînga și Uban~\cite{ginga2024}).
+    \item \textbf{Contribuția proprie:} În loc să analizăm doar titlul~\cite{ginga2024} sau să tratăm tot articolul ca pe un bloc unitar~\cite{broscoteanu2023}, metoda \textbf{IDI} împarte textul pe \textbf{paragrafe ordonate} și măsoară poziția în care apare informația promisă în titlu, alături de intensitatea potrivirii ($\text{Sim}_{\max}$).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Sinteză comparativă între literatură și abordarea propusă (IDI)}
+\label{tab:comparatie_literatura}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{p{3.2cm} p{3.0cm} p{3.2cm} p{4.0cm}}
+\toprule
+\textbf{Abordare} & \textbf{Date analizate} & \textbf{Metodă} & \textbf{Diferența față de IDI} \\
+\midrule
+Potthast et al.~\cite{potthast2016} & Titlu + pagină web (\textit{Webis}) & Trăsături manuale + clasificatori clasici & Nu măsoară poziția în care este livrată informația \\
+Gînga și Uban~\cite{ginga2024} & Exclusiv titlul (\textit{SciTechBaitRO}) & TF-IDF + stilometrie / modele BERT & Ignoră complet corpul articolului \\
+Broscoțeanu și Ionescu~\cite{broscoteanu2023} & Titlu + text întreg (\textit{RoCliCo}) & Rețea neurală BERT (similaritate globală) & Tratează corpul ca bloc unic; consum GPU ridicat \\
+\midrule
+\textbf{Metoda IDI (propusă)} & \textbf{Titlu + paragrafe (\textit{Webis-CBC-16})} & \textbf{TF-IDF + similaritate cosinus pe paragrafe} & \textbf{Cuantifică amânarea răspunsului pe paragrafe} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Metrici și îmbunătățiri aduse față de literatură:}
+Evaluarea pe setul complet va folosi metricile standard \textbf{Accuracy}, \textbf{Precision}, \textbf{Recall} și \textbf{F1-Score}:
+\begin{itemize}
+    \item \textbf{Performanță comparabilă cu metodele clasice:} Ne așteptăm la scoruri $F_1$ apropiate de cele ale algoritmilor clasici din literatură (care ating între $0.72$ și $0.85$~\cite{broscoteanu2023, ginga2024}), aducând un plus de sensibilitate (\textbf{Recall}) în detectarea articolelor cu titluri aparent neutre, dar care amână răspunsul spre final.
+    \item \textbf{Eficiență computațională și interpretabilitate față de BERT:} Deși rețelele neuronale de tip BERT ating scoruri $F_1$ ridicate (în jur de $0.88$~\cite{broscoteanu2023, ginga2024}), acestea implică un consum foarte mare de resurse hardware (necesită plăci video performante și timp îndelungat de antrenare) și nu oferă o justificare directă a deciziei. Abordarea noastră aduce o îmbunătățire practică semnificativă: rulează rapid pe un procesor obișnuit (CPU), are un consum minim de memorie și oferă o explicație clară, indicând exact paragraful în care este livrată informația.
+\end{itemize}
+
 
 
 \section{Modelarea părții experimentale}
@@ -307,6 +352,9 @@ Vijayasaradhi Indurthi, Bakhtiyar Syed, Manish Gupta, și Vasudeva Varma. \texti
 
 \bibitem{vincze2020}
 Veronika Vincze și Martina Katalin Szabó. \textit{Automatic Detection of Hungarian Clickbait and Entertaining Fake News}. In Proceedings of the 3rd International Workshop on Rumours and Deception in Social Media (RDSM), 2020.
+
+\bibitem{potthast2016}
+Martin Potthast, Sebastian Köpsel, Benno Stein și Matthias Hagen, \textit{Clickbait Detection}, Advances in Information Retrieval (ECIR 2016), pag. 810--817, 2016.
 
 \end{thebibliography}
 
