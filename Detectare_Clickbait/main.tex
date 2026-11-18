@@ -6,6 +6,9 @@
 \usepackage{amsmath}
 \usepackage{geometry}
 \usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \geometry{a4paper, margin=2.5cm}
 
 % Pachete adăugate pentru un aspect academic aerisit
@@ -330,12 +333,144 @@ Datele empirice din Tabelul~\ref{tab:rezultate_preliminare} evidențiază o sepa
 
 
 \section{Validarea pe un set real de date}
+
+Pentru validarea experimentală la scară reală, algoritmul propus a fost evaluat pe setul de date public \textbf{Webis-CBC-16}. Din cele $2.992$ de înregistrări inițiale, după eliminarea fișierelor HTML lipsă ($70$) și a paginilor fără titlu sau cu mai puțin de două paragrafe consistente ($918$), au rezultat \textbf{2.004 articole valide} ($1.547$ legitime și $457$ de tip \textit{clickbait}). Setul a fost împărțit stratificat în $80\%$ date de antrenare ($1.603$ articole) și $20\%$ date de testare ($401$ articole).
+
 \subsection{Comparația cu abordările din literatură}
+
+Pe baza celor $6$ trăsături extrase (\texttt{idi\_score}, \texttt{max\_similarity}, \texttt{max\_paragraph\_idx}, \texttt{total\_paragraphs}, \texttt{title\_word\_count}, \texttt{has\_question\_mark}), au fost antrenați trei clasificatori clasici~\cite{potthast2016, broscoteanu2023}. Tabelul~\ref{tab:comparatie_rezultate} prezintă rezultatele obținute de modelele noastre alături de valorile de referință raportate în articolele din literatură.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparație între rezultatele obținute prin metoda IDI (Webis-CBC-16) și literatura de specialitate}
+\label{tab:comparatie_rezultate}
+\renewcommand{\arraystretch}{1.25}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l l c c c c}
+\toprule
+\textbf{Model / Sursă} & \textbf{Trăsături / Resurse} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+\midrule
+\multicolumn{6}{l}{\textit{\textbf{Rezultate proprii (set testare Webis-CBC-16, 401 articole — clasa clickbait)}}} \\
+Logistic Regression (IDI) & 6 trăsături (CPU) & $0.6384$ & $0.3176$ & $0.5165$ & $\mathbf{0.3933}$ \\
+Random Forest (IDI)       & 6 trăsături (CPU) & $\mathbf{0.6933}$ & $\mathbf{0.3182}$ & $0.3077$ & $0.3128$ \\
+SVM – RBF Kernel (IDI)    & 6 trăsături (CPU) & $0.5810$ & $0.2919$ & $\mathbf{0.5934}$ & $0.3913$ \\
+\midrule
+\multicolumn{6}{l}{\textit{\textbf{Rezultate raportate în literatură (seturi de date dedicate)}}} \\
+Clasificatori clasici~\cite{broscoteanu2023} & TF-IDF vocabular (CPU) & \textemdash & \textemdash & \textemdash & $0.72 - 0.78$ \\
+Gînga și Uban~\cite{ginga2024} & Stilometrie + BERT (GPU) & \textemdash & \textemdash & \textemdash & $0.85$ \\
+Broscoțeanu și Ionescu~\cite{broscoteanu2023} & Rețea BERT (GPU) & \textemdash & \textemdash & \textemdash & $0.88$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Diferența dintre scorurile $F_1$ ale abordării noastre ($0.3933$ pe clasa \textit{clickbait}, respectiv $\text{Macro-}F_1 = 0.5679$) și cele din literatură ($0.72 - 0.88$) este determinată de faptul că experimentul actual izolează strict \textbf{6 trăsături structurale numerice}, fără a introduce mii de cuvinte din vocabularul titlului sau modele neuronale pre-antrenate. Avantajul practic constă în timpul de execuție (sub două secunde pe CPU) și în transparența deciziei.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    bar width=11pt,
+    width=0.92\textwidth,
+    height=6.2cm,
+    ylabel={Valoare metrică},
+    symbolic x coords={Logistic Regression, Random Forest, SVM (RBF)},
+    xtick=data,
+    ymin=0, ymax=0.85,
+    legend style={at={(0.5,-0.22)}, anchor=north, legend columns=4, font=\small},
+    nodes near coords,
+    nodes near coords align={vertical},
+    every node near coord/.append style={font=\scriptsize, rotate=90, anchor=west},
+    grid=major,
+    grid style={dashed, gray!30}
+]
+\addplot coordinates {(Logistic Regression,0.6384) (Random Forest,0.6933) (SVM (RBF),0.5810)};
+\addplot coordinates {(Logistic Regression,0.3176) (Random Forest,0.3182) (SVM (RBF),0.2919)};
+\addplot coordinates {(Logistic Regression,0.5165) (Random Forest,0.3077) (SVM (RBF),0.5934)};
+\addplot coordinates {(Logistic Regression,0.3933) (Random Forest,0.3128) (SVM (RBF),0.3913)};
+\legend{Accuracy, Precision (CB), Recall (CB), F1 (CB)}
+\end{axis}
+\end{tikzpicture}
+\caption{Comparația metricilor de performanță între cei trei clasificatori evaluați}
+\label{fig:comparatie_modele}
+\end{figure}
+
 \subsection{Evaluarea performanței generale}
+
+Pentru a înțelege comportamentul cel mai echilibrat dintre modelele testate, Tabelul~\ref{tab:raport_detaliat} prezintă raportul de clasificare pe ambele clase pentru \textit{Logistic Regression}, iar Figura~\ref{fig:importanta_trasaturi} ilustrează ponderea fiecărei trăsături în decizia modelului \textit{Random Forest}.
+
+\begin{table}[htbp]
+\centering
+\caption{Raportul detaliat de clasificare pentru modelul Logistic Regression ($401$ articole testate)}
+\label{tab:raport_detaliat}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Clasă} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Suport (nr. articole)} \\
+\midrule
+no-clickbait & $0.8261$ & $0.6742$ & $0.7425$ & $310$ \\
+clickbait    & $0.3176$ & $0.5165$ & $0.3933$ & $91$ \\
+\midrule
+\textbf{Macro Avg}    & $0.5718$ & $0.5953$ & $0.5679$ & $401$ \\
+\textbf{Weighted Avg} & $0.7107$ & $0.6384$ & $0.6632$ & $401$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    xbar,
+    bar width=11pt,
+    width=0.88\textwidth,
+    height=5.8cm,
+    xlabel={Importanță relativă (\%)},
+    symbolic y coords={Semn întrebare, Poziție paragraf max, Scor IDI, Lungime titlu, Total paragrafe, Similaritate maximă},
+    ytick=data,
+    xmin=0, xmax=42,
+    nodes near coords={\pgfmathprintnumber{\pgfplotspointmeta}\%},
+    nodes near coords align={horizontal},
+    every node near coord/.append style={font=\footnotesize},
+    grid=major,
+    grid style={dashed, gray!30}
+]
+\addplot[fill=blue!60!black] coordinates {
+    (1.96,Semn întrebare)
+    (10.31,Poziție paragraf max)
+    (13.76,Scor IDI)
+    (18.76,Lungime titlu)
+    (21.06,Total paragrafe)
+    (34.15,Similaritate maximă)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Importanța relativă a trăsăturilor structurale (Random Forest)}
+\label{fig:importanta_trasaturi}
+\end{figure}
+
+Analiza datelor din Tabelul~\ref{tab:raport_detaliat} și Figura~\ref{fig:importanta_trasaturi} evidențiază două aspecte esențiale:
+\begin{itemize}
+    \item \textbf{Dominanța trăsăturilor structurale:} Similaritatea maximă ($34.15\%$), numărul total de paragrafe ($21.06\%$), lungimea titlului ($18.76\%$) și scorul IDI ($13.76\%$) determină împreună peste $87\%$ din decizia clasificatorului, în timp ce prezența semnului de întrebare are un impact neglijabil ($1.96\%$).
+    \item \textbf{Sensibilitate vs. Precizie:} Modelul identifică cu precizie ridicată articolele legitime ($F_1 = 0.7425$) și detectează peste jumătate dintre articolele \textit{clickbait} ($\text{Recall} = 0.5165$), însă precizia pe clasa minoritară ($0.3176$) este influențată de dezechilibrul claselor ($310$ legitime față de $91$ \textit{clickbait}) și de limitarea TF-IDF la potrivirea exactă a cuvintelor.
+\end{itemize}
 
 
 \section{Concluzii}
+
+Lucrarea de față a propus o abordare structurală pentru detectarea articolelor de tip \textit{clickbait}, bazată pe \textbf{Indexul de Amânare a Informației (IDI)}. Spre deosebire de metodele consacrate din literatură, care se concentrează pe stilistica titlului sau procesează întregul text ca pe un bloc unitar, soluția dezvoltată evaluează modul în care informația promisă în titlu este distribuită pe parcursul paragrafelor.
+
 \subsection{Sinteza rezultatelor și contribuția proiectului}
+
+Validarea experimentală pe setul de date \textit{Webis-CBC-16} a confirmat atât potențialul, cât și limitele unei abordări pur structurale:
+\begin{itemize}
+    \item \textbf{Contribuția metodologică și tehnică:} A fost definită formal metrica IDI și a fost implementat un flux complet automatizat de preprocesare HTML, extragere de trăsături și clasificare, validat pe un corpus real de peste două mii de articole.
+    \item \textbf{Relevanța structurii față de stilistica titlului:} Experimentele au demonstrat că relația dintre titlu și conținutul paragrafelor are o influență mult mai mare asupra clasificării decât indicatorii superficiali din titlu (precum prezența semnelor de întrebare), confirmând ipoteza că amânarea răspunsului este o trăsătură definitorie a articolelor \textit{clickbait}.
+    \item \textbf{Compromisul dintre acuratețe și eficiență:} Utilizată izolat, doar cu reprezentări lexicale simple (TF-IDF), metrica IDI nu depășește performanța de clasificare a rețelelor neuronale profunde din literatură, fiind limitată de incapacitatea TF-IDF de a surprinde sinonimele și de lipsa vocabularului complet al titlului. În schimb, soluția oferă un avantaj practic major: consum minim de resurse (execuție în câteva secunde pe CPU) și interpretabilitate directă, indicând exact paragraful în care este livrată informația.
+\end{itemize}
+
+Prin urmare, metrica IDI nu înlocuiește modelele semantice complexe, ci reprezintă o componentă complementară ușoară și explicabilă, care pe viitor poate fi combinată cu reprezentări vectoriale dense (de tip \textit{Sentence-BERT}) sau aplicată pe corpusuri în limba română pentru a crește semnificativ rata de detecție.
 
 
 \newpage
